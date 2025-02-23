@@ -3,42 +3,68 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import time
 import datetime
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 # Function to scrape vehicle data from auction site (example: SYNETIQ)
 def scrape_auction_data():
-    url = "https://auctions.synetiq.co.uk/auction/search"  # Example URL
-    headers = {"User-Agent": "Mozilla/5.0"}
-    
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        print("Failed to retrieve data")
-        return []
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    vehicles = []
-    
-    # Loop through vehicle listings (example structure, adjust based on actual site HTML)
-    for listing in soup.find_all("div", class_="vehicle-card"): 
+    # Set up Selenium Chrome WebDriver
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run in headless mode for GitHub Actions
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    # Initialize WebDriver
+    service = Service("/usr/bin/chromedriver")  # Adjust path if needed
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
+    try:
+        # Open the SYNETIQ auction page
+        driver.get("https://auctions.synetiq.co.uk/")
+
+        time.sleep(3)  # Wait for elements to load
+
+        # Try to find and click the "Accept Recommended" button
         try:
-            title = listing.find("h2", class_="vehicle-title").text.strip()
-            price = listing.find("span", class_="current-bid").text.strip()
-            year = int(title.split()[0])  # Extract year from title
-            category = listing.find("span", class_="damage-category").text.strip()
-            mileage = int(listing.find("span", class_="mileage").text.replace(" miles", "").replace(",", ""))
-            
-            # Store data
-            vehicles.append({
-                "Title": title,
-                "Price": int(price.replace("£", "").replace(",", "")),
-                "Year": year,
-                "Category": category,
-                "Mileage": mileage
-            })
-        except Exception as e:
-            print(f"Skipping a vehicle due to error: {e}")
-            continue
-    
-    return vehicles
+            accept_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Accept Recommended')]")
+            accept_button.click()
+            print("✅ Cookie popup dismissed.")
+        except:
+            print("⚠️ No cookie popup detected (or already accepted).")
+
+        time.sleep(2)  # Allow time for the page to update
+
+        # Now proceed to scrape the auctions (update this part with your existing scraping logic)
+        auctions = driver.find_elements(By.CLASS_NAME, "vehicle-card")  # Update with actual class name
+        vehicles = []
+        for auction in auctions:
+            try:
+                title = auction.find_element(By.CLASS_NAME, "vehicle-title").text.strip()
+                price = auction.find_element(By.CLASS_NAME, "current-bid").text.strip()
+                year = int(title.split()[0])  # Extract year from title
+                category = auction.find_element(By.CLASS_NAME, "damage-category").text.strip()
+                mileage = int(auction.find_element(By.CLASS_NAME, "mileage").text.replace(" miles", "").replace(",", ""))
+
+                # Store data
+                vehicles.append({
+                    "Title": title,
+                    "Price": int(price.replace("£", "").replace(",", "")),
+                    "Year": year,
+                    "Category": category,
+                    "Mileage": mileage
+                })
+            except Exception as e:
+                print(f"Skipping a vehicle due to error: {e}")
+                continue
+
+        return vehicles
+
+    finally:
+        driver.quit()  # Close the browser when done
 
 # Function to estimate repair costs based on damage type
 def estimate_repair_cost(category):
@@ -105,10 +131,28 @@ def main():
     print(f"Results saved to {filename}")
 
     # Auto-commit file to GitHub
-    import os
     os.system(f'git add {filename}')
     os.system(f'git commit -m "Added auction results: {filename}"')
     os.system('git push origin main')
+
+    # ✅ Save AI Predictions to CSV
+    output_csv = "predictions.csv"
+    df.to_csv(output_csv, index=False)
+    print(f"Predictions saved to {output_csv}")
+
+    # Check if CSV file exists
+    csv_filename = "predictions.csv"
+    if os.path.exists(csv_filename):
+        print("✅ CSV file found. Preparing to commit to GitHub...")
+
+        os.system("git config --global user.email 'github-actions@github.com'")
+        os.system("git config --global user.name 'GitHub Actions'")
+
+        os.system(f"git add {csv_filename}")
+        os.system('git commit -m "Auto-generated auction results"')
+        os.system("git push origin main")
+    else:
+        print("❌ CSV file not found. Skipping commit.")
 
 # Run script
 if __name__ == "__main__":
