@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import datetime
 
 # Function to scrape vehicle data from auction site (example: SYNETIQ)
 def scrape_auction_data():
@@ -86,6 +87,28 @@ def main():
     df = pd.DataFrame(results)
     df.to_csv("auction_analysis.csv", index=False)
     print("Saved auction analysis to auction_analysis.csv")
+
+    # Example vehicle data (Replace with your actual auction results)
+    auction_results = [
+        {"Title": "Ford Ranger 2020", "Price": 3500, "Max Bid": 4200, "Profit": 2500},
+        {"Title": "BMW X3 2019", "Price": 4500, "Max Bid": 5000, "Profit": 3200}
+    ]
+
+    # Convert to DataFrame
+    df = pd.DataFrame(auction_results)
+
+    # Save with timestamp
+    filename = f"auction_results_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    df.to_csv(filename, index=False)
+
+    # Log file creation
+    print(f"Results saved to {filename}")
+
+    # Auto-commit file to GitHub
+    import os
+    os.system(f'git add {filename}')
+    os.system(f'git commit -m "Added auction results: {filename}"')
+    os.system('git push origin main')
 
 # Run script
 if __name__ == "__main__":
