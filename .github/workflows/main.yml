@@ -18,7 +18,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
           sudo apt-get install -y chromium-chromedriver
-          pip install -r requirements.txt
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -31,7 +30,7 @@ jobs:
       - name: Run Auction Scraper
         run: python auction_scraper.py
 
-            - name: List Directory Contents (Debugging)
+      - name: List Directory Contents (Debugging)
         run: ls -lah
 
       - name: Check If CSV Exists Before Uploading
@@ -44,7 +43,7 @@ jobs:
           fi
 
       - name: Upload CSV as Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: auction-results
           path: ./auction_results.csv
