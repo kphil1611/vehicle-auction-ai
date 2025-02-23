@@ -31,8 +31,17 @@ jobs:
       - name: Run Auction Scraper
         run: python auction_scraper.py
 
-      - name: List Directory Contents (Debugging)
-        run: ls -lah  # Check if CSV file exists
+            - name: List Directory Contents (Debugging)
+        run: ls -lah
+
+      - name: Check If CSV Exists Before Uploading
+        run: |
+          if [ -f "auction_results.csv" ]; then
+            echo "✅ CSV file found."
+          else
+            echo "❌ ERROR: CSV file is missing!"
+            exit 1
+          fi
 
       - name: Upload CSV as Artifact
         uses: actions/upload-artifact@v4
