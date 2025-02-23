@@ -2,8 +2,8 @@ name: Run Vehicle Auction Scraper
 
 on:
   schedule:
-    - cron: "0 */6 * * *"  # Runs every 6 hours
-  workflow_dispatch:  # Allows manual execution
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
 jobs:
   run-script:
@@ -23,3 +23,9 @@ jobs:
 
       - name: Run Auction Scraper
         run: python auction_scraper.py
+
+      - name: Upload CSV as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: auction-results
+          path: auction_results.csv
