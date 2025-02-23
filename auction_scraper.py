@@ -12,6 +12,8 @@ from selenium.webdriver.chrome.options import Options
 
 # Function to scrape vehicle data from auction site (example: SYNETIQ)
 def scrape_auction_data():
+    print("🔄 Starting auction data scraping...")
+
     # Set up Selenium Chrome WebDriver
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run in headless mode for GitHub Actions
@@ -24,6 +26,7 @@ def scrape_auction_data():
 
     try:
         # Open the SYNETIQ auction page
+        print("🌐 Navigating to SYNETIQ auction site...")
         driver.get("https://auctions.synetiq.co.uk/")
 
         time.sleep(3)  # Wait for elements to load
@@ -33,14 +36,17 @@ def scrape_auction_data():
             accept_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Accept Recommended')]")
             accept_button.click()
             print("✅ Cookie popup dismissed.")
-        except:
-            print("⚠️ No cookie popup detected (or already accepted).")
+        except Exception as e:
+            print(f"⚠️ No cookie popup detected or already accepted: {e}")
 
         time.sleep(2)  # Allow time for the page to update
 
-        # Now proceed to scrape the auctions (update this part with your existing scraping logic)
+        # Now proceed to scrape the auctions
+        print("🔍 Searching for vehicle listings...")
         auctions = driver.find_elements(By.CLASS_NAME, "vehicle-card")  # Update with actual class name
         vehicles = []
+        print(f"✅ Found {len(auctions)} vehicles.")
+
         for auction in auctions:
             try:
                 title = auction.find_element(By.CLASS_NAME, "vehicle-title").text.strip()
@@ -58,9 +64,10 @@ def scrape_auction_data():
                     "Mileage": mileage
                 })
             except Exception as e:
-                print(f"Skipping a vehicle due to error: {e}")
+                print(f"⚠️ Skipping a vehicle due to error: {e}")
                 continue
 
+        print(f"✅ Successfully scraped {len(vehicles)} vehicles.")
         return vehicles
 
     finally:
@@ -101,58 +108,44 @@ def calculate_max_bid(vehicle):
 
 # Main execution
 def main():
+    print("🚀 Starting main execution...")
+
     vehicles = scrape_auction_data()
+
+    if not vehicles:
+        print("❌ No vehicles scraped. Exiting...")
+        return
     
     results = []
     for vehicle in vehicles:
         max_bid = calculate_max_bid(vehicle)
         vehicle["Max Bid"] = max_bid
         results.append(vehicle)
-    
+
     # Convert to DataFrame and save results
     df = pd.DataFrame(results)
-    df.to_csv("auction_analysis.csv", index=False)
-    print("Saved auction analysis to auction_analysis.csv")
-
-    # Example vehicle data (Replace with your actual auction results)
-    auction_results = [
-        {"Title": "Ford Ranger 2020", "Price": 3500, "Max Bid": 4200, "Profit": 2500},
-        {"Title": "BMW X3 2019", "Price": 4500, "Max Bid": 5000, "Profit": 3200}
-    ]
-
-    # Convert to DataFrame
-    df = pd.DataFrame(auction_results)
-
+    
     # Save with timestamp
     filename = f"auction_results_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
     df.to_csv(filename, index=False)
 
-    # Log file creation
-    print(f"Results saved to {filename}")
+    # Confirm file creation
+    if os.path.exists(filename):
+        print(f"✅ Results successfully saved to {filename}")
+    else:
+        print("❌ ERROR: CSV file was not created!")
 
     # Auto-commit file to GitHub
+    print("📤 Preparing to commit results to GitHub...")
+
+    os.system("git config --global user.email 'github-actions@github.com'")
+    os.system("git config --global user.name 'GitHub Actions'")
+
     os.system(f'git add {filename}')
-    os.system(f'git commit -m "Added auction results: {filename}"')
-    os.system('git push origin main')
+    os.system(f'git commit -m "Auto-generated auction results: {filename}"')
+    os.system("git push origin main")
 
-    # ✅ Save AI Predictions to CSV
-    output_csv = "predictions.csv"
-    df.to_csv(output_csv, index=False)
-    print(f"Predictions saved to {output_csv}")
-
-    # Check if CSV file exists
-    csv_filename = "predictions.csv"
-    if os.path.exists(csv_filename):
-        print("✅ CSV file found. Preparing to commit to GitHub...")
-
-        os.system("git config --global user.email 'github-actions@github.com'")
-        os.system("git config --global user.name 'GitHub Actions'")
-
-        os.system(f"git add {csv_filename}")
-        os.system('git commit -m "Auto-generated auction results"')
-        os.system("git push origin main")
-    else:
-        print("❌ CSV file not found. Skipping commit.")
+    print("✅ Results committed to GitHub!")
 
 # Run script
 if __name__ == "__main__":
