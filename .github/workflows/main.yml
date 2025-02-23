@@ -2,8 +2,8 @@ name: Run Vehicle Auction Scraper
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
-  workflow_dispatch:
+    - cron: "0 */24 * * *"  # Runs every 24 hours
+  workflow_dispatch:  # Allows manual execution
 
 jobs:
   run-script:
@@ -12,6 +12,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Install Chrome & WebDriver for Selenium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          sudo apt-get install -y chromium-chromedriver
+          pip install -r requirements.txt
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -24,8 +31,11 @@ jobs:
       - name: Run Auction Scraper
         run: python auction_scraper.py
 
+      - name: List Directory Contents (Debugging)
+        run: ls -lah  # Check if CSV file exists
+
       - name: Upload CSV as Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: auction-results
-          path: auction_results.csv
+          path: ./auction_results.csv
