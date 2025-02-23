@@ -35,7 +35,7 @@ jobs:
         run: ls -lah  # Check if CSV file exists
 
       - name: Upload CSV as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: auction-results
           path: ./auction_results.csv
